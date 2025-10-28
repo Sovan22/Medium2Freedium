@@ -7,7 +7,8 @@ import { convertToFreedium, isMediumLink } from '../utils/linkHandler';
 const HomeScreen = ({ navigation }) => {
   // State for pasted URL
   const [url, setUrl] = useState('');
-  const isValidLink = isMediumLink(url);  // validate Medium URL
+  const isValidLink = true;
+  // isMediumLink(url);  // validate Medium URL
 
   return (
     <SafeAreaView style={styles.container}>

@@ -81,36 +81,14 @@ export default function App() {
 
     console.log('Received URL:', url);
 
-    // Expo Go deep link prefix: strip '/--/' and extract the real link
-    // let link = url;
-    // // Capture entire shared text (including pre-link text) after '/--/'
-    // const expoMatch = url.match(/\/--\/(.+)/);
-    // if (expoMatch && expoMatch[1]) {
-    //   link = expoMatch[1];
-    // }
-    // // Only act on actual deep links, custom scheme, or HTTP Medium links
-    // const isCustomScheme = !!expoMatch || link.startsWith('medium2freedium://');
-    // const isHttpMediumLink = /^https?:\/\/(?:www\.)?medium\.com\//i.test(link);
-    // if (!isCustomScheme && !isHttpMediumLink) return;
-
-    // At this point, link is a valid Medium URL
-
     // Check if it's a Medium link
-    if (isMediumLink(url)) {
+    // if (isMediumLink(url))
       const freediumUrl = convertToFreedium(url);
       if (navigationRef.current) {
         navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent : true });
       } else {
         setInitialUrl(freediumUrl);
       }
-    } else {
-      // Show an alert for invalid links
-      Alert.alert(
-        'Invalid Link',
-        'The shared link is not a Medium article. Please share a valid Medium article link.',
-        [{ text: 'OK' }]
-      );
-    }
   };
 
   // Handle the stored initial URL once navigation is ready

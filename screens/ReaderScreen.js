@@ -2,8 +2,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShareIntent } from 'expo-share-intent';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, StyleSheet, TouchableOpacity, View } from 'react-native';
-import RNExitApp from 'react-native-exit-app';
+import { ActivityIndicator, Alert, BackHandler, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { extractArticleTitle } from '../utils/linkHandler';
 
@@ -32,7 +31,7 @@ const ReaderScreen = ({ route, navigation }) => {
     useCallback(() => {
       const onBackPress = () => {
         if (isShareIntent) {
-          RNExitApp.exitApp();
+          Linking.openURL('medium://');
         } else {
           navigation.goBack();
         }
@@ -48,7 +47,7 @@ const ReaderScreen = ({ route, navigation }) => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault();
       if (isShareIntent) {
-        RNExitApp.exitApp();
+        Linking.openURL('medium://');
       } else {
         navigation.dispatch(e.data.action);
       }
@@ -56,12 +55,19 @@ const ReaderScreen = ({ route, navigation }) => {
     return unsubscribe;
   }, [navigation, isShareIntent]);
 
-  const handleError = () => {
+  const handleError = (syntheticEvent) => {
+    const { nativeEvent } = syntheticEvent || {};
+    console.error('WebView load error', nativeEvent);
     Alert.alert(
       'Error Loading Article',
       'There was a problem loading the article. Please try again later.',
       [{ text: 'Go Back', onPress: () => navigation.goBack() }]
     );
+  };
+
+  const handleHttpError = (syntheticEvent) => {
+    const { nativeEvent } = syntheticEvent || {};
+    console.error('WebView HTTP error', nativeEvent);
   };
 
   const handleWebViewMessage = (event) => {
@@ -140,6 +146,7 @@ const ReaderScreen = ({ route, navigation }) => {
         source={{ uri: url }}
         style={[styles.webview, { opacity: isPageReady ? 1 : 0 }]}
         onError={handleError}
+        onHttpError={handleHttpError}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         injectedJavaScript={injectedJS}

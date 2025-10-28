@@ -30,7 +30,7 @@ export const convertToFreedium = (url) => {
   const cleanUrl = url.replace(/\/$/, '');
   
   // Create the Freedium URL
-  return `https://freedium.cfd/${cleanUrl}`;
+  return `https://freedium-mirror.cfd/${cleanUrl}`;
 };
 
 /**
