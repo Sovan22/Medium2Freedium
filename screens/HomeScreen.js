@@ -80,7 +80,7 @@ const HomeScreen = ({ navigation }) => {
         {Platform.OS === 'android' ? <View style={styles.infoContainer}>
           <Text style={styles.infoTitle}>Sharing instructions for Medium app</Text>
           <Text style={styles.infoText}>
-          Tap the share button on the article, select "Share link via.." and choose "Medium2Freedium"   
+          {'Tap the share button on the article, select "Share link via.." and choose "Medium2Freedium"'}
           </Text>
         </View> : null}
         
@@ -89,7 +89,7 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.infoText}>
             {Platform.OS === 'ios' 
               ? 'In Browser, tap the Share button and select "Medium2Freedium"'
-              : 'In Broswer, tap the three dots menu, select "Share..." and choose "Medium2Freedium"'
+              : 'In Browser, tap the three dots menu, select "Share..." and choose "Medium2Freedium"'
             }
           </Text>
         </View>

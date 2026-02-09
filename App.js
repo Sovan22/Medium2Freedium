@@ -85,7 +85,7 @@ export default function App() {
     // if (isMediumLink(url))
       const freediumUrl = convertToFreedium(url);
       if (navigationRef.current) {
-        navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent : true });
+        navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent });
       } else {
         setInitialUrl(freediumUrl);
       }
