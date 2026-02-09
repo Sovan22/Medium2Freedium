@@ -2,26 +2,7 @@
 
 ## 1. Bugs & Logic Issues (High Priority)
 
-### 1.1 URL validation is completely disabled
-**Files:** `App.js:85-86`, `screens/HomeScreen.js:10`
-
-The `isMediumLink()` check is commented out in `App.js`, so **any** URL — not just Medium links — gets converted to a Freedium URL. Similarly, in `HomeScreen.js`, `isValidLink` is hardcoded to `true`, making the validation error message dead code.
-
-```js
-// App.js:85-86 — the guard is commented out, all URLs pass through
-// if (isMediumLink(url))
-  const freediumUrl = convertToFreedium(url);
-```
-
-```js
-// HomeScreen.js:10 — validation always passes
-const isValidLink = true;
-// isMediumLink(url);  // validate Medium URL
-```
-
-**Fix:** Re-enable `isMediumLink()` in both files so that non-Medium URLs are rejected with a helpful error message.
-
-### 1.2 `isShareIntent` parameter is ignored
+### 1.1 `isShareIntent` parameter is ignored
 **File:** `App.js:88`
 
 The `handleUrl` function accepts an `isShareIntent` parameter, but the navigation call hardcodes `isShareIntent: true` regardless of the actual value:
@@ -33,14 +14,7 @@ navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent: true
 
 This means the back button always tries to open `medium://` even when the app was opened via a deep link (not a share).
 
-### 1.3 `isMediumLink` regex — intentionally broad but could use refinement
-**File:** `utils/linkHandler.js:16`
-
-The broad second alternative in the regex exists by design: Medium articles are often hosted on authors' personalized custom domains (e.g., `blog.johndoe.com`, `engineering.company.io`), not just `medium.com`. Because there's no exhaustive list of these domains, the regex intentionally casts a wide net.
-
-However, since this validation is currently **disabled anyway** (see 1.1), if/when it's re-enabled, consider whether its role should be a strict gate or a soft hint. Since the app's primary flow is share-intent (where the user is sharing from a Medium context), the broad regex is reasonable. For the paste-to-read flow, a softer approach like a confirmation prompt ("This doesn't look like a Medium link — open anyway?") would be more user-friendly than a hard block.
-
-### 1.4 Typo in UI text
+### 1.2 Typo in UI text
 **File:** `screens/HomeScreen.js:92`
 
 "Broswer" should be "Browser".
@@ -76,7 +50,7 @@ This file duplicates the navigator defined in `App.js` and is never imported any
 **Fix:** Remove these from `package.json` to reduce bundle size.
 
 ### 2.5 Commented-out code throughout
-Multiple files contain commented-out code blocks (`isMediumLink` calls, title display, `Attila Vágó` hide rule). This adds noise and makes intent unclear.
+Multiple files contain commented-out code blocks (title display, `Attila Vágó` hide rule in injected JS). This adds noise and makes intent unclear.
 
 **Fix:** Remove commented-out code. Use git history if you need to recover it.
 
@@ -150,7 +124,7 @@ The app doesn't detect network state. If offline, the WebView shows a generic er
 There are no test files — no unit tests, integration tests, or end-to-end tests.
 
 **Fix (suggested test plan):**
-- **Unit tests** for `utils/linkHandler.js` — test `isMediumLink`, `convertToFreedium`, `extractArticleTitle` with edge cases
+- **Unit tests** for `utils/linkHandler.js` — test `convertToFreedium` and `extractArticleTitle` with edge cases
 - **Component tests** for `HomeScreen` and `ReaderScreen` using React Native Testing Library
 - **E2E tests** using Detox or Maestro for the share-to-read flow
 
@@ -168,10 +142,8 @@ Code can be committed with lint errors, console.logs, or failing tests.
 
 ## 6. Security Considerations (Medium Priority)
 
-### 6.1 No URL sanitization before WebView
-URLs from user input or share intents are passed directly into `convertToFreedium()` and then to WebView without sanitization. A malicious URL could potentially be crafted to exploit WebView behavior.
-
-**Fix:** Validate and sanitize URLs before passing them to WebView. At minimum, ensure the URL uses `https://` and points to a known domain pattern.
+### 6.1 Basic URL sanitization before WebView
+URLs from user input or share intents are passed directly into `convertToFreedium()` and then to WebView. While Freedium handles invalid links gracefully, a basic sanity check (e.g., ensuring the URL starts with `http://` or `https://`) would prevent malformed input from reaching the WebView.
 
 ### 6.2 Injected JavaScript is a maintenance risk
 The large JS string in `ReaderScreen.js:97-139` manipulates Freedium's DOM. If Freedium changes its page structure, this breaks silently.
@@ -190,7 +162,7 @@ The large JS string in `ReaderScreen.js:97-139` manipulates Freedium's DOM. If F
 | **Clipboard paste button** | Add a "Paste from clipboard" button next to the URL input for faster workflow. |
 | **Article history** | Store recently viewed articles using AsyncStorage so users can revisit them. |
 | **Loading progress bar** | Replace the spinner with a WebView progress bar that shows actual load progress. |
-| **Empty URL submission guard** | The "Read Article" button is clickable even when the input is empty (since `isValidLink` is hardcoded `true`). |
+| **Empty URL submission guard** | The "Read Article" button is clickable even when the URL input is empty. Add a basic `url.trim().length > 0` check. |
 
 ---
 
@@ -198,7 +170,7 @@ The large JS string in `ReaderScreen.js:97-139` manipulates Freedium's DOM. If F
 
 | Priority | Area | Items |
 |----------|------|-------|
-| **High** | Bugs | Re-enable URL validation, fix `isShareIntent` param, fix typo; refine regex UX when validation is re-enabled |
+| **High** | Bugs | Fix `isShareIntent` param, fix typo |
 | **High** | Testing | Add unit tests for linkHandler, add CI pipeline |
 | **Medium** | Dead code | Remove template files, unused deps, commented code |
 | **Medium** | Code quality | Migrate to TS, centralize colors, remove console.logs |
