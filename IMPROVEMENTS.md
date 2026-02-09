@@ -33,10 +33,12 @@ navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent: true
 
 This means the back button always tries to open `medium://` even when the app was opened via a deep link (not a share).
 
-### 1.3 `isMediumLink` regex is overly broad
+### 1.3 `isMediumLink` regex — intentionally broad but could use refinement
 **File:** `utils/linkHandler.js:16`
 
-The regex `/^https?:\/\/(([a-z0-9-]+\.)?medium\.com\/|[a-z0-9-]+\.[a-z0-9-]+\/)/i` matches virtually **any** URL with a subdomain (e.g., `https://google.com/anything` would match). The second alternative needs to be narrowed to known Medium custom domains, or removed entirely.
+The broad second alternative in the regex exists by design: Medium articles are often hosted on authors' personalized custom domains (e.g., `blog.johndoe.com`, `engineering.company.io`), not just `medium.com`. Because there's no exhaustive list of these domains, the regex intentionally casts a wide net.
+
+However, since this validation is currently **disabled anyway** (see 1.1), if/when it's re-enabled, consider whether its role should be a strict gate or a soft hint. Since the app's primary flow is share-intent (where the user is sharing from a Medium context), the broad regex is reasonable. For the paste-to-read flow, a softer approach like a confirmation prompt ("This doesn't look like a Medium link — open anyway?") would be more user-friendly than a hard block.
 
 ### 1.4 Typo in UI text
 **File:** `screens/HomeScreen.js:92`
@@ -196,7 +198,7 @@ The large JS string in `ReaderScreen.js:97-139` manipulates Freedium's DOM. If F
 
 | Priority | Area | Items |
 |----------|------|-------|
-| **High** | Bugs | Re-enable URL validation, fix `isShareIntent` param, fix regex, fix typo |
+| **High** | Bugs | Re-enable URL validation, fix `isShareIntent` param, fix typo; refine regex UX when validation is re-enabled |
 | **High** | Testing | Add unit tests for linkHandler, add CI pipeline |
 | **Medium** | Dead code | Remove template files, unused deps, commented code |
 | **Medium** | Code quality | Migrate to TS, centralize colors, remove console.logs |
