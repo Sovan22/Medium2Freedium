@@ -1,16 +1,14 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useShareIntent } from 'expo-share-intent';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { extractArticleTitle } from '../utils/linkHandler';
 
 const ReaderScreen = ({ route, navigation }) => {
-  const { url, isShareIntent = false } = route.params;
-  const [isPageReady, setIsPageReady] = useState(false);
+  const { url } = route.params;
+  const [isLoading, setIsLoading] = useState(true);
   const webViewRef = useRef(null);
-  const {resetShareIntent} = useShareIntent();
   // Set the navigation title
   useEffect(() => {
     const title = extractArticleTitle(url);
@@ -30,32 +28,16 @@ const ReaderScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (isShareIntent) {
-          Linking.openURL('medium://');
-        } else {
-          navigation.goBack();
-        }
+        navigation.goBack();
         return true;
       };
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [navigation, isShareIntent])
+    }, [navigation])
   );
 
-  // Intercept header back and gestures to exit the app back to the originating app
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      e.preventDefault();
-      if (isShareIntent) {
-        Linking.openURL('medium://');
-      } else {
-        navigation.dispatch(e.data.action);
-      }
-    });
-    return unsubscribe;
-  }, [navigation, isShareIntent]);
-
   const handleError = (syntheticEvent) => {
+    setIsLoading(false);
     const { nativeEvent } = syntheticEvent || {};
     console.error('WebView load error', nativeEvent);
     Alert.alert(
@@ -70,94 +52,25 @@ const ReaderScreen = ({ route, navigation }) => {
     console.error('WebView HTTP error', nativeEvent);
   };
 
-  const handleWebViewMessage = (event) => {
-    if (event.nativeEvent.data === 'goHome') {
-      console.log('goHome',isPageReady)
-      Alert.alert(
-        'Invalid Link',
-        'Please share a valid Medium article link.',
-        [{ text: 'OK', onPress: () => {
-            resetShareIntent() 
-            navigation.goBack()
-          } 
-        }]
-      );
-    }
-    else if (event.nativeEvent.data === 'contentReady') {
-      // Scroll after content is ready
-      // console.log('contentReady',isPageReady)
-      webViewRef.current?.injectJavaScript(`
-        window.scrollBy(0, 50);
-        true;
-      `);
-      setIsPageReady(true); // Show the WebView
-    }
-  };
-
-  const injectedJS = `
-    (function() {
-      function hideElementsByTextContent(tag, textIncludes) {
-        const elements = document.getElementsByTagName(tag);
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          if (el.innerText && el.innerText.includes(textIncludes)) {
-            el.style.display = 'none';
-          }
-        }
-      }
-
-      function checkForErrorText() {
-        const elements = document.getElementsByTagName('p');
-        for (let i = 0; i < elements.length; i++) {
-          if (elements[i].innerText.includes("Unable to identify the Medium article URL")) {
-            window.ReactNativeWebView.postMessage("goHome");
-            return true;
-          }
-        }
-        hideTargets();
-        return false;
-      }
-
-      function hideTargets() {
-        hideElementsByTextContent('div', 'Freedium');
-        hideElementsByTextContent('p', '< Go to the original');
-        // Optional: hideElementsByTextContent('div', 'Attila Vágó');
-        setTimeout(() => {
-          window.ReactNativeWebView.postMessage("contentReady");
-        }, 200);
-      }
-        
-      checkForErrorText();
-      
-      const observer = new MutationObserver(() => {
-        // hideTargets();
-        checkForErrorText();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      true;
-    })();
-  `;
-
   return (
     <View style={styles.container}>
       <WebView
         ref={webViewRef}
         source={{ uri: url }}
-        style={[styles.webview, { opacity: isPageReady ? 1 : 0 }]}
+        style={styles.webview}
+        onLoadStart={() => setIsLoading(true)}
+        onLoadEnd={() => setIsLoading(false)}
         onError={handleError}
         onHttpError={handleHttpError}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        injectedJavaScript={injectedJS}
-        onMessage={handleWebViewMessage}
         startInLoadingState={false}
         scalesPageToFit={true}
         renderLoading={() => null}
       />
 
-      {!isPageReady && (
-        <View style={styles.loadingContainer}>
+      {isLoading && (
+        <View pointerEvents="none" style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
         </View>
       )}

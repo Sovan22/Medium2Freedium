@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --test tests/*.test.cjs",
     "postinstall": "patch-package"
   },
   "dependencies": {

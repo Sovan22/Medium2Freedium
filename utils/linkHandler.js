@@ -7,6 +7,12 @@
  * @param {string} url - The URL to check
  * @returns {boolean} - Whether the URL is a valid Medium article link
  */
+export const extractSharedUrl = (text) => {
+  if (typeof text !== 'string') return '';
+  const match = text.match(/https?:\/\/[^\s<>"']+/i);
+  return match ? match[0].replace(/[.,!?;:)\]]+$/, '') : '';
+};
+
 export const isMediumLink = (url) => {
   if (!url) return false;
   

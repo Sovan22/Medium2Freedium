@@ -8,7 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './screens/HomeScreen';
 import ReaderScreen from './screens/ReaderScreen';
-import { convertToFreedium, isMediumLink } from './utils/linkHandler';
+import { convertToFreedium, extractSharedUrl } from './utils/linkHandler';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -19,9 +19,10 @@ export default function App() {
   const [initialUrl, setInitialUrl] = useState(null);
   const navigationRef = useRef(null);
   const [appIsReady, setAppIsReady] = useState(false);
+  const [navigationReady, setNavigationReady] = useState(false);
   
   // Initialize the share intent hook
-  const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntent();
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent();
 
   // Handle the initial URL that opened the app
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function App() {
       try {
         // Get the URL that opened the app
         const url = await Linking.getInitialURL();
-        if (url) {
+        if (url && /^https?:\/\//i.test(url)) {
           handleUrl(url);
         }
         
@@ -50,7 +51,7 @@ export default function App() {
   useEffect(() => {
     // Handle deep linking when app is already open
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      handleUrl(url);
+      if (/^https?:\/\//i.test(url)) handleUrl(url);
     });
 
     return () => {
@@ -63,8 +64,10 @@ export default function App() {
     if (hasShareIntent && shareIntent) {
       console.log('Received share intent:', shareIntent);
       // Process shared text with share flag
-      if (shareIntent.webUrl) {
-        handleUrl(shareIntent.webUrl, true);
+      const url = extractSharedUrl(shareIntent.webUrl) || extractSharedUrl(shareIntent.text);
+      if (url) {
+        handleUrl(url, true);
+        resetShareIntent();
       } else {
         Alert.alert(
           'Invalid Link',
@@ -84,20 +87,20 @@ export default function App() {
     // Check if it's a Medium link
     // if (isMediumLink(url))
       const freediumUrl = convertToFreedium(url);
-      if (navigationRef.current) {
-        navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent : true });
+      if (navigationRef.current?.isReady()) {
+        navigationRef.current.navigate('Reader', { url: freediumUrl, isShareIntent });
       } else {
-        setInitialUrl(freediumUrl);
+        setInitialUrl({ url: freediumUrl, isShareIntent });
       }
   };
 
   // Handle the stored initial URL once navigation is ready
-  const onNavigationReady = () => {
-    if (initialUrl) {
-      navigationRef.current.navigate('Reader', { url: initialUrl, isShareIntent : true });
+  useEffect(() => {
+    if (navigationReady && initialUrl) {
+      navigationRef.current.navigate('Reader', initialUrl);
       setInitialUrl(null);
     }
-  };
+  }, [navigationReady, initialUrl]);
 
   if (!appIsReady) {
     return null;
@@ -107,7 +110,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer
         ref={navigationRef}
-        onReady={onNavigationReady}
+        onReady={() => setNavigationReady(true)}
       >
         <Stack.Navigator 
           initialRouteName="Home"
